@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-import "../../interfaces/IShareTaxPolicy.sol";
-import "../AccessControlRci.sol";
+import "../interfaces/IShareTaxPolicy.sol";
+import "./AccessControlRci.sol";
 
 contract ShareTaxPolicyVanilla is IShareTaxPolicy, AccessControlRci {
 

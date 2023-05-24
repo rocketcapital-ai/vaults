@@ -292,24 +292,6 @@ contract RequestManager is ReentrancyGuard, PendingToken, IERC4626, IRequestMana
         emit Withdraw(msg.sender, receiver, owner, assets, shares);
     }
 
-    function getRemainderAssetToken()
-    public view override
-    returns (uint256 remainderAssetToken)
-    {
-        remainderAssetToken = assetToken.balanceOf(address(this)) - totalDeposited;
-    }
-
-    function refundRemainder(address receiver)
-    external override onlyRole(RCI_CHILD_ADMIN)
-    returns (bool success)
-    {
-        uint256 remainderAssetAmount = getRemainderAssetToken();
-        assetToken.safeTransfer(receiver, remainderAssetAmount);
-        success = true;
-
-        emit RemainderRefunded(receiver, remainderAssetAmount);
-    }
-
     function toggleSuspendSubscription()
     external override onlyRole(RCI_CHILD_ADMIN)
     returns (bool success)

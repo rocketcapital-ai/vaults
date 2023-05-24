@@ -4,23 +4,6 @@ pragma solidity ^0.8.15;
 interface IRequestManagerAdmin {
     
     // View methods
-
-    /*
-    @dev: function for getting the number of asset tokens sent to this contract without using any of the 
-    @dev: methods for subscription.
-    @return: amount of asset tokens this contract holds that are not part of the AUM.
-    */
-    function getRemainderAssetToken() external view returns (uint256 remainderAssetToken);
-
-    // State-changing methods
-
-    /*
-    @dev: Send asset tokens that are under the fund contract's balance that do not belong to the AUM to the input address.
-    @param: receiver: Address to send the tokens to.
-    @return: true if completed successfully.
-    */
-    function refundRemainder(address receiver) external returns (bool success);
-
     /*
     @dev: Flip the status of 'subscriptionSuspended' from true to false, or false to true.
     @return: true if completed successfully.
@@ -56,7 +39,6 @@ interface IRequestManagerAdmin {
 
     // Events
     event FeeUpdated(string feeName, uint256 indexed fxd, uint256 indexed pct, uint8 cyclicFeeId);
-    event RemainderRefunded(address indexed recipient, uint256 remainderAssetAmount);
     event SubscriptionStatusChanged(bool indexed suspended);
     event RedemptionStatusChanged(bool indexed suspended);
     event GlobalLimitUpdated(string limitName, uint256 indexed oldLimit, uint256 indexed newLimit);

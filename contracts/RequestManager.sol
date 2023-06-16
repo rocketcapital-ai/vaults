@@ -123,12 +123,6 @@ contract RequestManager is ReentrancyGuard, PendingToken, IERC4626, IRequestMana
         // Calculate how many shares to mint.
         shares = previewDeposit(assets);
 
-        // Transfer in asset.
-        assetToken.safeTransferFrom(msg.sender, address(this), assets);
-
-        // Move to vault.
-        assetToken.transfer(vault, assets);
-
         // Check limits.
         require(assets <= maxDeposit(receiver));
         require(shares <= maxMint(receiver));
@@ -138,6 +132,12 @@ contract RequestManager is ReentrancyGuard, PendingToken, IERC4626, IRequestMana
 
         // perform updates
         totalDeposited += assets;
+
+        // Transfer in asset.
+        assetToken.safeTransferFrom(msg.sender, address(this), assets);
+
+        // Move to vault.
+        assetToken.transfer(vault, assets);
 
         // emit Deposit event
         emit Deposit(msg.sender, receiver, assets, shares);
@@ -160,34 +160,33 @@ contract RequestManager is ReentrancyGuard, PendingToken, IERC4626, IRequestMana
     }
 
     function previewMint(uint256 shares)
-    external view override
+    public view override
     returns (uint256 assets)
     {
-        assets = shares;
+        require(shares > 0, "Cannot mint 0.");
+        assets = convertToAssets(shares);
     }
 
     function mint(uint256 shares, address receiver)
     public nonReentrant onlyRole(RCI_INFLOW_MGR)
     returns (uint256 assets)
     {
-        require(shares > 0, "Cannot mint 0.");
-
         // Calculate assets to deposit.
-        assets = convertToAssets(shares);
+        assets = previewMint(shares);
 
         // Check limits.
         require(shares <= maxMint(receiver));
         require(assets <= maxDeposit(receiver));
         require(assets >= minimumDeposit, "Cannot deposit below 0.");
 
-        // Transfer in assets.
-        assetToken.safeTransferFrom(msg.sender, address(this), assets);
-
-        // Mint tokens.
+         // Mint tokens.
         shareMint(receiver, shares);
 
         // perform updates
         totalDeposited += assets;
+
+        // Transfer in assets.
+        assetToken.safeTransferFrom(msg.sender, address(this), assets);
 
         // emit Deposit event
         emit Deposit(msg.sender, receiver, assets, shares);
@@ -222,11 +221,11 @@ contract RequestManager is ReentrancyGuard, PendingToken, IERC4626, IRequestMana
         // burn share tokens.
         burnFrom(owner, shares);
 
-        // Return asset.
-        assetToken.safeTransfer(receiver, assets);
-
         // perform updates
         totalDeposited -= assets;
+
+        // Return asset.
+        assetToken.safeTransfer(receiver, assets);
 
         // emit Withdraw event
         emit Withdraw(msg.sender, receiver, owner, assets, shares);
@@ -264,9 +263,6 @@ contract RequestManager is ReentrancyGuard, PendingToken, IERC4626, IRequestMana
     public nonReentrant onlyRole(RCI_OUTFLOW_MGR)
     returns (uint256 assets)
     {
-        // no fees for redeem
-        require(shares > 0);
-
         // calculate assets to receive
         assets = previewRedeem(shares);
 
@@ -277,11 +273,11 @@ contract RequestManager is ReentrancyGuard, PendingToken, IERC4626, IRequestMana
         // burn share tokens
         burnFrom(owner, shares);
 
-        // Return asset.
-        assetToken.safeTransfer(receiver, assets);
-
         // perform updates
         totalDeposited -= assets;
+
+        // Return asset.
+        assetToken.safeTransfer(receiver, assets);
 
         emit Withdraw(msg.sender, receiver, owner, assets, shares);
     }

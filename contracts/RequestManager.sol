@@ -111,6 +111,8 @@ contract RequestManager is ReentrancyGuard, PendingToken, IERC4626, IRequestMana
     external view override
     returns (uint256 shares)
     {
+        require(assets > 0, "Cannot deposit 0.");
+        require(assets >= minimumDeposit, "Cannot deposit below minimum.");
         shares = convertToShares(assets);
     }
 
@@ -118,17 +120,14 @@ contract RequestManager is ReentrancyGuard, PendingToken, IERC4626, IRequestMana
     public nonReentrant onlyRole(RCI_INFLOW_MGR)
     returns (uint256 shares)
     {
-        require(assets > 0, "Cannot deposit 0.");
-        require(assets >= minimumDeposit, "Cannot deposit below minimum.");
+        // Calculate how many shares to mint.
+        shares = convertToShares(assets);
 
         // Transfer in asset.
         assetToken.safeTransferFrom(msg.sender, address(this), assets);
 
         // Move to vault.
         assetToken.transfer(vault, assets);
-
-        // Calculate how many shares to mint.
-        shares = convertToShares(assets);
 
         // Check limits.
         require(assets <= maxDeposit(receiver));

@@ -108,7 +108,7 @@ contract RequestManager is ReentrancyGuard, PendingToken, IERC4626, IRequestMana
     }
 
     function previewDeposit(uint256 assets)
-    external view override
+    public view override
     returns (uint256 shares)
     {
         require(assets > 0, "Cannot deposit 0.");
@@ -121,7 +121,7 @@ contract RequestManager is ReentrancyGuard, PendingToken, IERC4626, IRequestMana
     returns (uint256 shares)
     {
         // Calculate how many shares to mint.
-        shares = convertToShares(assets);
+        shares = previewDeposit(assets);
 
         // Transfer in asset.
         assetToken.safeTransferFrom(msg.sender, address(this), assets);

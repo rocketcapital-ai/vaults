@@ -176,11 +176,6 @@ contract RequestManager is ReentrancyGuard, PendingToken, IERC4626, IRequestMana
         // Calculate assets to deposit.
         assets = convertToAssets(shares);
 
-        // Round-up assets to deposit.
-        if (convertToShares(assets) < shares) {
-            assets += 1;
-        }
-
         // Check limits.
         require(shares <= maxMint(receiver));
         require(assets <= maxDeposit(receiver));

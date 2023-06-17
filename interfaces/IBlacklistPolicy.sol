@@ -9,9 +9,12 @@ interface IBlacklistPolicy{
     @dev: if the transaction is not allowed.
     */
 
-    function transferPolicy(address from, address to, uint256 amount) external view returns (bool);
+    function transferPolicy(address from, address to, uint256 amount)
+    external view returns (bool);
 
-    function depositPolicy(uint256 assets, uint256 shares, address receiver, address sender) external view returns (bool);
+    function depositPolicy(uint256 assets, uint256 shares, address receiver, address sender)
+    external view returns (bool);
 
-    function withdrawPolicy(uint256 assets, uint256 shares, address receiver, address sender) external view returns (bool);
+    function withdrawPolicy(uint256 assets, uint256 shares, address receiver, address sender)
+    external view returns (bool);
 }

@@ -2,6 +2,31 @@
 pragma solidity ^0.8.15;
 
 interface IRequestManagerAdmin {
+
+    // Enums
+    enum MaxId { Deposit,  Mint,  Withdraw,  Redeem }
+
+    //Structs
+    /*
+    @dev: fxd and pct should be specified with the same number of decimals as the fund's asset token.
+    @dev: fxd should be specified in terms of the asset.
+    @dev: For example, where the asset is USDC, the asset token has 6 decimals,
+    @dev: and where the fee structure has a base fee of 1 USDC + 2% of the deposit amount, this should be
+    @dev: fxd = 1 000 000, pct = 20 000
+    @dev: fxd and pct are specified in asset token decimals.
+    */
+    struct Fee {
+        uint128 fxd;
+        uint128 pct;
+    }
+
+    // Events
+    event FeeUpdated(string feeName, uint256 indexed fxd, uint256 indexed pct, uint8 cyclicFeeId);
+    event SubscriptionStatusChanged(bool indexed suspended);
+    event RedemptionStatusChanged(bool indexed suspended);
+    event GlobalLimitUpdated(string limitName, uint256 indexed oldLimit, uint256 indexed newLimit);
+    event IndividualLimitUpdated(string limitName, address indexed userAddress, uint256 indexed oldLimit,
+        uint256 indexed newLimit);
     
     // View methods
     /*
@@ -36,31 +61,4 @@ interface IRequestManagerAdmin {
     @return: true if completed successfully.
     */
     function updateIndividualMax(MaxId limitId, address userAddress, uint256 newLimit) external returns (bool success);
-
-    // Events
-    event FeeUpdated(string feeName, uint256 indexed fxd, uint256 indexed pct, uint8 cyclicFeeId);
-    event SubscriptionStatusChanged(bool indexed suspended);
-    event RedemptionStatusChanged(bool indexed suspended);
-    event GlobalLimitUpdated(string limitName, uint256 indexed oldLimit, uint256 indexed newLimit);
-    event IndividualLimitUpdated(string limitName, address indexed userAddress, uint256 indexed oldLimit, uint256 indexed newLimit);
-
-
-    // Enums
-
-    enum MaxId { Deposit,  Mint,  Withdraw,  Redeem }
-
-    //Structs
-
-    /*
-    @dev: fxd and pct should be specified with the same number of decimals as the fund's asset token.
-    @dev: fxd should be specified in terms of the asset.
-    @dev: For example, where the asset is USDC, the asset token has 6 decimals,
-    @dev: and where the fee structure has a base fee of 1 USDC + 2% of the deposit amount, this should be
-    @dev: fxd = 1 000 000, pct = 20 000
-    @dev: fxd and pct are specified in asset token decimals.
-    */
-    struct Fee {
-        uint128 fxd;
-        uint128 pct;
-    }
 }

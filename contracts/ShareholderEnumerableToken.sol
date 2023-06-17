@@ -12,6 +12,13 @@ abstract contract ShareholderEnumerableToken is ERC20 {
         string memory symbol_
     ) ERC20(name_, symbol_) {}
 
+    function getShareHolders(uint256 startIndex, uint256 endIndex)
+    external view
+    returns (address[] memory shareHoldersList)
+    {
+        shareHoldersList = getListFromSet(shareHolders, startIndex, endIndex);
+    }
+
     function numberOfShareHolders()
     public view
     returns (uint256 holdersCount)
@@ -28,14 +35,6 @@ abstract contract ShareholderEnumerableToken is ERC20 {
             shareHolders.remove(userAddress);
         }
     }
-
-    function getShareHolders(uint256 startIndex, uint256 endIndex)
-    external view
-    returns (address[] memory shareHoldersList)
-    {
-        shareHoldersList = getListFromSet(shareHolders, startIndex, endIndex);
-    }
-
 
     function getListFromSet(EnumerableSet.AddressSet storage setOfData, uint256 startIndex, uint256 endIndex)
     internal view

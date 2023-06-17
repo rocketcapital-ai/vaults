@@ -49,104 +49,7 @@ contract Router is ReentrancyGuard, AccessControlRci
         blacklistPolicy = IBlacklistPolicy(blacklistPolicy_);
     }
 
-    function updateBlacklistPolicyAddress(address newBlacklistPolicy)
-    public onlyRole(RCI_CHILD_ADMIN)
-    returns (bool success)
-    {
-        require(newBlacklistPolicy.isContract(), "blacklist must be a contract.");
-        emit BlacklistPolicyUpdated(address(blacklistPolicy), newBlacklistPolicy);
-        blacklistPolicy = IBlacklistPolicy(newBlacklistPolicy);
-        success = true;
-    }
-
-    function authorizeVault(address vault)
-    external onlyRole(RCI_CHILD_ADMIN)
-    {
-        require(vault.isContract(), "vault must be a contract.");
-        authorizedVaults.add(vault);
-        IERC20Metadata usdcToken = IERC20Metadata(Vault(vault).usdcToken());
-        IERC20Metadata shareToken = IERC20Metadata(vault);
-        usdcToken.safeApprove(address(Vault(vault).pendingDepositUsdc()), type(uint256).max);
-        shareToken.safeApprove(address(Vault(vault).pendingWithdrawShare()), type(uint256).max);
-    }
-
-    function deauthorizeVault(address vault)
-    external onlyRole(RCI_CHILD_ADMIN)
-    {
-        require(authorizedVaults.contains(vault), "vault not authorized.");
-        authorizedVaults.remove(vault);
-        IERC20Metadata usdcToken = IERC20Metadata(Vault(vault).usdcToken());
-        IERC20Metadata shareToken = IERC20Metadata(vault);
-        usdcToken.safeApprove(address(Vault(vault).pendingDepositUsdc()), 0);
-        shareToken.safeApprove(address(Vault(vault).pendingWithdrawShare()), 0);
-    }
-
-    function numberOfAuthorizedVaults()
-    external view
-    returns (uint256 number)
-    {
-        number = authorizedVaults.length();
-    }
-
-    function getAuthorizedVault(uint256 index)
-    external view
-    returns (address vaultAddress)
-    {
-        vaultAddress = authorizedVaults.at(index);
-    }
-
-    function _updateRequestRecord(address user, RequestRecord memory record)
-    internal
-    {
-        requestRecords[user].push(record);
-    }
-
-    function updateExchangeRecord(
-        address user, uint8 requestType, address receiver,
-        uint256 amountIn, uint256 amountOut, uint256 feesPaid
-    )
-    external
-    {
-        require(authorizedVaults.contains(msg.sender), "Vault not authorized.");
-        ProcessedRecord memory record = ProcessedRecord({
-            vault: msg.sender,
-            requestType: RequestType(requestType),
-            receiver: receiver,
-            timestamp: block.timestamp,
-            amountIn: amountIn,
-            amountOut: amountOut,
-            feesPaid: feesPaid
-        });
-        processedRecords[user].push(record);
-    }
-
-    function numberOfRecords(address user)
-    external view
-    returns (uint256, uint256)
-    {
-        return (requestRecords[user].length, processedRecords[user].length);
-    }
-
-    function getRecords(
-        address user, uint256 requestStartIndex, uint256 requestEndIndex,
-        uint256 processedStartIndex, uint256 processedEndIndex
-    )
-    external view
-    returns (RequestRecord[] memory requests, ProcessedRecord[] memory processed)
-    {
-        requests = new RequestRecord[](requestEndIndex - requestStartIndex);
-        for (uint i = requestStartIndex; i < requestEndIndex; i++){
-            requests[i - requestStartIndex] = requestRecords[user][i];
-        }
-
-        processed = new ProcessedRecord[](processedEndIndex - processedStartIndex);
-        for (uint i = processedStartIndex; i < processedEndIndex; i++){
-            processed[i - processedStartIndex] = processedRecords[user][i];
-        }
-    }
-
-
-    function depositRequest(address vault, uint256 amountUsdc, address receiver)
+        function depositRequest(address vault, uint256 amountUsdc, address receiver)
     external nonReentrant
     {
         require(authorizedVaults.contains(vault));
@@ -194,5 +97,101 @@ contract Router is ReentrancyGuard, AccessControlRci
         if (msg.sender != receiver) {
             _updateRequestRecord(receiver, record);
         }
+    }
+
+    function authorizeVault(address vault)
+    external onlyRole(RCI_CHILD_ADMIN)
+    {
+        require(vault.isContract(), "vault must be a contract.");
+        authorizedVaults.add(vault);
+        IERC20Metadata usdcToken = IERC20Metadata(Vault(vault).usdcToken());
+        IERC20Metadata shareToken = IERC20Metadata(vault);
+        usdcToken.safeApprove(address(Vault(vault).pendingDepositUsdc()), type(uint256).max);
+        shareToken.safeApprove(address(Vault(vault).pendingWithdrawShare()), type(uint256).max);
+    }
+
+    function deauthorizeVault(address vault)
+    external onlyRole(RCI_CHILD_ADMIN)
+    {
+        require(authorizedVaults.contains(vault), "vault not authorized.");
+        authorizedVaults.remove(vault);
+        IERC20Metadata usdcToken = IERC20Metadata(Vault(vault).usdcToken());
+        IERC20Metadata shareToken = IERC20Metadata(vault);
+        usdcToken.safeApprove(address(Vault(vault).pendingDepositUsdc()), 0);
+        shareToken.safeApprove(address(Vault(vault).pendingWithdrawShare()), 0);
+    }
+
+    function updateExchangeRecord(
+        address user, uint8 requestType, address receiver,
+        uint256 amountIn, uint256 amountOut, uint256 feesPaid
+    )
+    external
+    {
+        require(authorizedVaults.contains(msg.sender), "Vault not authorized.");
+        ProcessedRecord memory record = ProcessedRecord({
+            vault: msg.sender,
+            requestType: RequestType(requestType),
+            receiver: receiver,
+            timestamp: block.timestamp,
+            amountIn: amountIn,
+            amountOut: amountOut,
+            feesPaid: feesPaid
+        });
+        processedRecords[user].push(record);
+    }
+
+    function numberOfAuthorizedVaults()
+    external view
+    returns (uint256 number)
+    {
+        number = authorizedVaults.length();
+    }
+
+    function getAuthorizedVault(uint256 index)
+    external view
+    returns (address vaultAddress)
+    {
+        vaultAddress = authorizedVaults.at(index);
+    }
+
+    function numberOfRecords(address user)
+    external view
+    returns (uint256, uint256)
+    {
+        return (requestRecords[user].length, processedRecords[user].length);
+    }
+
+    function getRecords(
+        address user, uint256 requestStartIndex, uint256 requestEndIndex,
+        uint256 processedStartIndex, uint256 processedEndIndex
+    )
+    external view
+    returns (RequestRecord[] memory requests, ProcessedRecord[] memory processed)
+    {
+        requests = new RequestRecord[](requestEndIndex - requestStartIndex);
+        for (uint i = requestStartIndex; i < requestEndIndex; i++){
+            requests[i - requestStartIndex] = requestRecords[user][i];
+        }
+
+        processed = new ProcessedRecord[](processedEndIndex - processedStartIndex);
+        for (uint i = processedStartIndex; i < processedEndIndex; i++){
+            processed[i - processedStartIndex] = processedRecords[user][i];
+        }
+    }
+
+    function updateBlacklistPolicyAddress(address newBlacklistPolicy)
+    public onlyRole(RCI_CHILD_ADMIN)
+    returns (bool success)
+    {
+        require(newBlacklistPolicy.isContract(), "blacklist must be a contract.");
+        emit BlacklistPolicyUpdated(address(blacklistPolicy), newBlacklistPolicy);
+        blacklistPolicy = IBlacklistPolicy(newBlacklistPolicy);
+        success = true;
+    }
+
+    function _updateRequestRecord(address user, RequestRecord memory record)
+    internal
+    {
+        requestRecords[user].push(record);
     }
 }

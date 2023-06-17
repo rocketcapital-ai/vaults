@@ -46,7 +46,8 @@ contract Vault is ShareToken, Types {
 
         pendingDepositUsdc = RequestManager(requestManagerImpl.clone());
         pendingDepositUsdc.setup(
-            string.concat("Pending USDC deposit for ", name_), string.concat("pd-USDC"), usdcToken_, address(this), msg.sender
+            string.concat("Pending USDC deposit for ", name_), string.concat("pd-USDC"), usdcToken_,
+            address(this), msg.sender
         );
         pendingDepositUsdc.grantRole(pendingDepositUsdc.RCI_OUTFLOW_MGR(), address(this));
 
@@ -62,23 +63,6 @@ contract Vault is ShareToken, Types {
 
         usdcToken = usdcToken_;
         delegateWallet = delegateWallet_;
-    }
-
-    function completeSingleDeposit(uint256 pendingDepositUsdcAmt, address receiver)
-    internal
-    returns (uint256 feesInUsdc)
-    {
-        require(pendingDepositUsdcAmt > 0);
-
-        feesInUsdc = calculateFee(pendingDepositUsdcAmt, onboardingFeePercentage);
-        uint256 sharesToMint = (pendingDepositUsdcAmt - feesInUsdc) * singleUnit / nav;
-
-        pendingDepositUsdc.redeem(pendingDepositUsdcAmt, address(this), receiver);
-        require(blacklistPolicy.depositPolicy(pendingDepositUsdcAmt, sharesToMint, receiver, receiver), "Blacklisted deposit request.");
-        shareMint(receiver, sharesToMint);
-
-        Router(router).updateExchangeRecord(receiver, 0, receiver, pendingDepositUsdcAmt - feesInUsdc, sharesToMint, feesInUsdc);
-        emit SharesMinted(receiver, sharesToMint);
     }
 
     function completeDeposits(uint256 newNav, UsersAndAmounts[] calldata usersAndAmountsUsdc)
@@ -104,18 +88,6 @@ contract Vault is ShareToken, Types {
         Router(router).updateExchangeRecord(requester,  2, requester, 0, amount, 0);
     }
 
-    function processSingleWithdrawal(
-        uint256 pSharesIn, address receiver, uint256 withdrawNav,
-        uint256 unitValue, address routerAddr, string memory symbol)
-    internal
-    returns (uint256 pwUsdcOut)
-    {
-        pwUsdcOut = pendingWithdrawUsdc.processSingleWithdrawal(pSharesIn, receiver, withdrawNav, unitValue);
-        require(blacklistPolicy.withdrawPolicy(pwUsdcOut, pSharesIn, receiver, receiver), "Blacklisted withdraw request.");
-        uint256 fee = calculateFee(pwUsdcOut, withdrawalFeePercentage);
-        Router(routerAddr).updateExchangeRecord(receiver, 1, receiver, pSharesIn, pwUsdcOut - fee, fee);
-    }
-
     function processWithdrawals(uint256 newNav, UsersAndAmounts[] memory usersAndAmountsShares)
     external onlyRole(RCI_CHILD_ADMIN)
     {
@@ -137,16 +109,6 @@ contract Vault is ShareToken, Types {
             totalYShares += usersAndAmountsShares[i].amount;
         }
         burnShares(totalYShares);
-    }
-
-    function completeSingleWithdrawal(uint256 pendingWithdrawalUsdcAmt, address receiver)
-    internal
-    returns (uint256 feesInUsdc)
-    {
-        require(blacklistPolicy.withdrawPolicy(pendingWithdrawalUsdcAmt, 0, receiver, receiver), "Blacklisted withdraw completion.");
-        pendingWithdrawUsdc.reclaimPwUsdc(pendingWithdrawalUsdcAmt, receiver);
-        feesInUsdc = calculateFee(pendingWithdrawalUsdcAmt, withdrawalFeePercentage);
-        IERC20Metadata(usdcToken).safeTransfer(receiver, pendingWithdrawalUsdcAmt - feesInUsdc);
     }
 
     function completeWithdrawals(UsersAndAmounts[] calldata usersAndAmountsUsdc)
@@ -180,7 +142,6 @@ contract Vault is ShareToken, Types {
         emit SharesMinted(recipient, amount);
     }
 
-
     function updateDelegateWallet(address newDelegateWallet)
     external onlyRole(RCI_CHILD_ADMIN)
     {
@@ -211,14 +172,6 @@ contract Vault is ShareToken, Types {
         pendingDepositUsdc.grantRole(pendingDepositUsdc.RCI_INFLOW_MGR(), newRouter);
         pendingWithdrawShare.grantRole(pendingWithdrawShare.RCI_INFLOW_MGR(), newRouter);
         router = newRouter;
-    }
-
-    function updateNav(uint256 newNav)
-    internal
-    {
-        if (newNav != nav) {
-            nav = newNav;
-        }
     }
 
     function updateOnboardingFeePercentage(uint256 newFeePercentage)
@@ -264,6 +217,57 @@ contract Vault is ShareToken, Types {
         require(newCompetition != address(0));
         competition = newCompetition;
         success = true;
+    }
+
+    function completeSingleDeposit(uint256 pendingDepositUsdcAmt, address receiver)
+    internal
+    returns (uint256 feesInUsdc)
+    {
+        require(pendingDepositUsdcAmt > 0);
+
+        feesInUsdc = calculateFee(pendingDepositUsdcAmt, onboardingFeePercentage);
+        uint256 sharesToMint = (pendingDepositUsdcAmt - feesInUsdc) * singleUnit / nav;
+
+        pendingDepositUsdc.redeem(pendingDepositUsdcAmt, address(this), receiver);
+        require(blacklistPolicy.depositPolicy(pendingDepositUsdcAmt, sharesToMint, receiver, receiver),
+            "Blacklisted deposit request.");
+        shareMint(receiver, sharesToMint);
+
+        Router(router).updateExchangeRecord(receiver, 0, receiver, pendingDepositUsdcAmt - feesInUsdc,
+            sharesToMint, feesInUsdc);
+        emit SharesMinted(receiver, sharesToMint);
+    }
+
+    function completeSingleWithdrawal(uint256 pendingWithdrawalUsdcAmt, address receiver)
+    internal
+    returns (uint256 feesInUsdc)
+    {
+        require(blacklistPolicy.withdrawPolicy(pendingWithdrawalUsdcAmt, 0, receiver, receiver),
+            "Blacklisted withdraw completion.");
+        pendingWithdrawUsdc.reclaimPwUsdc(pendingWithdrawalUsdcAmt, receiver);
+        feesInUsdc = calculateFee(pendingWithdrawalUsdcAmt, withdrawalFeePercentage);
+        IERC20Metadata(usdcToken).safeTransfer(receiver, pendingWithdrawalUsdcAmt - feesInUsdc);
+    }
+
+    function processSingleWithdrawal(
+        uint256 pSharesIn, address receiver, uint256 withdrawNav,
+        uint256 unitValue, address routerAddr, string memory symbol)
+    internal
+    returns (uint256 pwUsdcOut)
+    {
+        pwUsdcOut = pendingWithdrawUsdc.processSingleWithdrawal(pSharesIn, receiver, withdrawNav, unitValue);
+        require(blacklistPolicy.withdrawPolicy(pwUsdcOut, pSharesIn, receiver, receiver),
+            "Blacklisted withdraw request.");
+        uint256 fee = calculateFee(pwUsdcOut, withdrawalFeePercentage);
+        Router(routerAddr).updateExchangeRecord(receiver, 1, receiver, pSharesIn, pwUsdcOut - fee, fee);
+    }
+
+    function updateNav(uint256 newNav)
+    internal
+    {
+        if (newNav != nav) {
+            nav = newNav;
+        }
     }
 
     function calculateFee(uint256 amount, uint256 feePercentage)

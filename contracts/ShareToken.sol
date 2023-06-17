@@ -3,6 +3,8 @@ pragma solidity ^0.8.4;
 import "./TransferFeeToken.sol";
 
 abstract contract ShareToken is TransferFeeToken {
+    event SharesMinted(address indexed recipient, uint256 indexed amount);
+    event SharesBurned(address indexed from, uint256 indexed amount);
 
     constructor(
         string memory name_,
@@ -11,10 +13,15 @@ abstract contract ShareToken is TransferFeeToken {
         address admin_
     ) TransferFeeToken(name_, symbol_, blacklistPolicy_, admin_) {}
 
-    event SharesMinted(address indexed recipient, uint256 indexed amount);
-    event SharesBurned(address indexed from, uint256 indexed amount);
+    function decimals()
+    public view override
+    returns (uint8)
+    {
+        return 6;
+    }
 
-    function shareMint(address to, uint256 amount) internal
+    function shareMint(address to, uint256 amount)
+    internal
     {
         _mint(to, amount);
     }
@@ -24,11 +31,4 @@ abstract contract ShareToken is TransferFeeToken {
     {
         _burn(address(this), amtToBurn);
     }
-
-    function decimals()
-    public view override
-    returns (uint8) {
-        return 6;
-    }
-
 }

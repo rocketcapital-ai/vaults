@@ -9,41 +9,20 @@ import "./../interfaces/IShareTaxPolicy.sol";
 
 abstract contract PendingToken is ERC20, AccessControlRci, Initializable {
     using EnumerableSet for EnumerableSet.AddressSet;
+    using Address for address;
+
     EnumerableSet.AddressSet private shareHolders;
     bool private recursionFlag;
     string private _name;
     string private _symbol;
 
-    using Address for address;
-
     constructor () ERC20("_", "_") {}
 
-    function setup(string memory name_, string memory symbol_, address admin_)
-    internal
+    function getShareHolders(uint256 startIndex, uint256 endIndex)
+    external view
+    returns (address[] memory shareHoldersList)
     {
-        _initializeRciAdmin(admin_);
-        _name = name_;
-        _symbol = symbol_;
-    }
-
-    function name() public view override returns (string memory) {
-        return _name;
-    }
-
-    function symbol() public view override returns (string memory) {
-        return _symbol;
-    }
-
-    function shareMint(address to, uint256 amount) internal
-    {
-        _mint(to, amount);
-    }
-
-    function _afterTokenTransfer(address from, address to, uint256 amount)
-    internal override
-    {
-        updateShareHolders(from);
-        updateShareHolders(to);
+        shareHoldersList = getListFromSet(shareHolders, startIndex, endIndex);
     }
 
     function transfer(address to, uint256 amount)
@@ -65,10 +44,16 @@ abstract contract PendingToken is ERC20, AccessControlRci, Initializable {
         revert(); // prevent use
     }
 
-    function burnFrom(address account, uint256 amount)
-    internal
-    {
-        _burn(account, amount);
+    function name() public view override returns (string memory) {
+        return _name;
+    }
+
+    function symbol() public view override returns (string memory) {
+        return _symbol;
+    }
+
+    function decimals() public view override returns (uint8) {
+        return 6;
     }
 
     function numberOfShareHolders()
@@ -76,6 +61,32 @@ abstract contract PendingToken is ERC20, AccessControlRci, Initializable {
     returns (uint256 holdersCount)
     {
         holdersCount = shareHolders.length();
+    }
+
+    function setup(string memory name_, string memory symbol_, address admin_)
+    internal
+    {
+        _initializeRciAdmin(admin_);
+        _name = name_;
+        _symbol = symbol_;
+    }
+
+    function shareMint(address to, uint256 amount) internal
+    {
+        _mint(to, amount);
+    }
+
+    function _afterTokenTransfer(address from, address to, uint256 amount)
+    internal override
+    {
+        updateShareHolders(from);
+        updateShareHolders(to);
+    }
+
+    function burnFrom(address account, uint256 amount)
+    internal
+    {
+        _burn(account, amount);
     }
 
     function updateShareHolders(address userAddress)
@@ -88,14 +99,6 @@ abstract contract PendingToken is ERC20, AccessControlRci, Initializable {
         }
     }
 
-    function getShareHolders(uint256 startIndex, uint256 endIndex)
-    external view
-    returns (address[] memory shareHoldersList)
-    {
-        shareHoldersList = getListFromSet(shareHolders, startIndex, endIndex);
-    }
-
-
     function getListFromSet(EnumerableSet.AddressSet storage setOfData, uint256 startIndex, uint256 endIndex)
     internal view
     returns (address[] memory listOfData)
@@ -104,11 +107,5 @@ abstract contract PendingToken is ERC20, AccessControlRci, Initializable {
         for (uint i = startIndex; i < endIndex; i++){
             listOfData[i - startIndex] = setOfData.at(i);
         }
-    }
-
-    function decimals()
-    public view override
-    returns (uint8) {
-        return 6;
     }
 }

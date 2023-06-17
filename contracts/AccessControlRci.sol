@@ -17,9 +17,4 @@ abstract contract AccessControlRci is AccessControlEnumerable{
         _grantRole(RCI_CHILD_ADMIN, admin);
         _setRoleAdmin(RCI_CHILD_ADMIN, RCI_MAIN_ADMIN);
     }
-
-    function renounceRole(bytes32 role, address account) public override(IAccessControl, AccessControl) {
-        // make method unavailable for public use.
-        revert("Not permitted.");
-    }
 }
